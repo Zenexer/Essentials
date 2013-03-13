@@ -1,7 +1,5 @@
 package net.ess3.user;
 
-import java.util.Collections;
-import java.util.Set;
 import static net.ess3.I18n._;
 import net.ess3.api.IUser;
 
@@ -9,15 +7,15 @@ import net.ess3.api.IUser;
 public class TooManyMatchesException extends Exception
 {
 	private static final long serialVersionUID = -1458262878150217201L;
-	private final Set<IUser> matches;
+	private final UserMatch matches;
 
 	public TooManyMatchesException()
 	{
 		super();
-		matches = Collections.emptySet();
+		matches = null;
 	}
 
-	public TooManyMatchesException(Set<IUser> users)
+	public TooManyMatchesException(UserMatch users)
 	{
 		super();
 		this.matches = users;
@@ -26,9 +24,11 @@ public class TooManyMatchesException extends Exception
 	@Override
 	public String getMessage()
 	{
-		if (!matches.isEmpty())
+		matches.reset();
+		
+		if (matches.hasNext())
 		{
-			StringBuilder builder = new StringBuilder(matches.size() * 16);
+			StringBuilder builder = new StringBuilder();
 			for (IUser iUser : matches)
 			{
 				if (builder.length() > 0)

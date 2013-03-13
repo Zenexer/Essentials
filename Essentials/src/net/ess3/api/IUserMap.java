@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.Set;
 import net.ess3.user.PlayerNotFoundException;
 import net.ess3.user.TooManyMatchesException;
+import net.ess3.user.UserMatch;
 import org.bukkit.entity.Player;
 
 
@@ -45,9 +46,9 @@ public interface IUserMap extends IReload
 	 */
 	IUser matchUserExcludingHidden(final String name, final Player requester) throws TooManyMatchesException, PlayerNotFoundException;
 
-	Set<IUser> matchUsers(final String name, final boolean includeOffline);
+	UserMatch matchUsers(final String name, final boolean includeOffline);
 
-	Set<IUser> matchUsersExcludingHidden(final String name, final Player requester);
+	UserMatch matchUsersExcludingHidden(final String name, final Player requester);
 
 	void addPrejoinedPlayer(Player player);
 

@@ -112,158 +112,49 @@ public class UserMap extends StorageObjectMap<IUser> implements IUserMap
 
 	public IUser matchUser(final String name, final boolean includeHidden, final boolean includeOffline, final Player requester) throws TooManyMatchesException, PlayerNotFoundException
 	{
-		final Set<IUser> users = matchUsers(name, includeHidden, includeOffline, requester);
-		if (users.isEmpty())
+		final UserMatch match = matchUsers(name, includeHidden, includeOffline, requester);
+		if (!match.hasNext())
 		{
 			throw new PlayerNotFoundException();
 		}
-		else
+		
+		final IUser user = match.next();
+		
+		if (match.hasNext())
 		{
-			if (users.size() > 1)
-			{
-				throw new TooManyMatchesException(users);
-			}
-			else
-			{
-				return users.iterator().next();
-			}
+			throw new TooManyMatchesException(match);
 		}
+
+		return user;
 	}
 
 	@Override
-	public Set<IUser> matchUsers(final String name, final boolean includeOffline)
+	public UserMatch matchUsers(final String name, final boolean includeOffline)
 	{
 		return matchUsers(name, true, includeOffline, null);
 	}
 
 	@Override
-	public Set<IUser> matchUsersExcludingHidden(final String name, final Player requester)
+	public UserMatch matchUsersExcludingHidden(final String name, final Player requester)
 	{
 		return matchUsers(name, false, false, requester);
 	}
 
-	private final Pattern comma = Pattern.compile(",");
-
-	public Set<IUser> matchUsers(final String name, final boolean includeHidden, final boolean includeOffline, final Player requester)
+	public UserMatch matchUsers(final String name, final boolean includeHidden, final boolean includeOffline, final Player requester)
 	{
-		final String colorlessName = FormatUtil.stripColor(name);
-		final String[] search = comma.split(colorlessName);
-		final boolean multisearch = search.length > 1;
-		final Set<IUser> result = new LinkedHashSet<IUser>();
-		final String nicknamePrefix = FormatUtil.stripColor(getNickNamePrefix());
-		for (String searchString : search)
+		final UserMatch match = UserMatch.match(ess, ess.getUserMap().getUser(requester), name);
+		
+		if (includeHidden)
 		{
-			if (searchString.isEmpty())
-			{
-				continue;
-			}
-
-			if (searchString.startsWith(nicknamePrefix))
-			{
-				searchString = searchString.substring(nicknamePrefix.length());
-			}
-			searchString = searchString.toLowerCase(Locale.ENGLISH);
-			final boolean multimatching = searchString.endsWith("*");
-			if (multimatching)
-			{
-				searchString = searchString.substring(0, searchString.length() - 1);
-			}
-			Player match = null;
-			for (Player player : ess.getServer().getOnlinePlayers())
-			{
-				if (player.getName().equalsIgnoreCase(searchString) && (includeHidden || includeOffline || requester == null || requester.canSee(player)))
-				{
-					match = player;
-					break;
-				}
-			}
-			if (match != null)
-			{
-				if (multimatching || multisearch)
-				{
-					result.add(getUser(match));
-				}
-				else
-				{
-					return Collections.singleton(getUser(match));
-				}
-			}
-			for (Player player : ess.getServer().getOnlinePlayers())
-			{
-				final String nickname = getUser(player).getData().getNickname();
-				if (nickname != null && !nickname.isEmpty() && nickname.equalsIgnoreCase(
-						searchString) && (includeHidden || includeOffline || requester == null || requester.canSee(player)))
-				{
-					if (multimatching || multisearch)
-					{
-						result.add(getUser(player));
-					}
-					else
-					{
-						return Collections.singleton(getUser(player));
-					}
-				}
-			}
-			if (includeOffline)
-			{
-				IUser matchu = null;
-				for (String playerName : getAllUniqueUsers())
-				{
-					if (playerName.equals(searchString))
-					{
-						matchu = getUser(playerName);
-						break;
-					}
-				}
-				if (matchu != null)
-				{
-					if (multimatching || multisearch)
-					{
-						result.add(matchu);
-					}
-					else
-					{
-						return Collections.singleton(matchu);
-					}
-				}
-			}
-			if (multimatching || match == null)
-			{
-				for (Player player : ess.getServer().getOnlinePlayers())
-				{
-					if (player.getName().toLowerCase(Locale.ENGLISH).startsWith(
-							searchString) && (includeHidden || includeOffline || requester == null || requester.canSee(player)))
-					{
-						result.add(getUser(player));
-						break;
-					}
-					final String nickname = getUser(player).getData().getNickname();
-					if (nickname != null && !nickname.isEmpty() && nickname.toLowerCase(Locale.ENGLISH).startsWith(
-							searchString) && (includeHidden || includeOffline || requester == null || requester.canSee(player)))
-					{
-						result.add(getUser(player));
-						break;
-					}
-				}
-				if (includeOffline)
-				{
-					for (String playerName : getAllUniqueUsers())
-					{
-						if (playerName.startsWith(searchString))
-						{
-							result.add(getUser(playerName));
-							break;
-						}
-					}
-				}
-			}
+			match.setHiddenSearch(true);
 		}
-		return result;
-	}
-
-	private String getNickNamePrefix()
-	{
-		return ess.getSettings().getData().getChat().getNicknamePrefix();
+		
+		if (includeOffline)
+		{
+			match.setOfflineSearch(true);
+		}
+		
+		return match;
 	}
 
 	@Override
